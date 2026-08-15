@@ -1,0 +1,68 @@
+name = "CSwL"
+version = "0.1.0"
+defaultTargets = ["cswl"]
+
+# Docstrings e module docstrings em formato Verso (e não Markdown): habilita a
+# marcação `{name}`f``, `{syntax term}`...``, etc., que na saída web vira link
+# para a definição. Vale para `/-- ... -/` e para `/-! ... -/`
+# (`doc.verso.module` cai para `doc.verso` quando não é dada explicitamente).
+leanOptions = {doc.verso = true}
+
+[[lean_lib]]
+name = "CSwL"
+# `doc.verso.suggestions` desliga o linter que, para cada `código` inline, sugere
+# um "role" mais específico (`{lean}`, `{name}`, `{syntax term}`, ...). Sem ele são
+# ~50 avisos por build nos capítulos — é o que o Tao desliga com
+# `set_option doc.verso.suggestions false` no topo de cada arquivo.
+# Ele fica aqui, e não junto de `doc.verso` acima, porque em TOML as duas chaves
+# colidiriam na mesma tabela (`doc.verso` não pode ser bool e tabela ao mesmo
+# tempo). Lake soma as duas: `leanOptions` da lib = pacote ++ lib.
+leanOptions = {doc.verso.suggestions = false}
+
+# Os exercícios ficam dentro de `CSwL/ChapterNN.lean`, na posição da seção do
+# livro a que correspondem — não há mais uma lib `Exercises` separada. Em
+# `CSwL/` um `sorry` é aceito, deixado de propósito como exemplo a resolver em
+# aula; é o próprio aviso do `lake build` que serve de lista do que falta.
+#
+# Os gabaritos ficam em `Solutions/`, que o `.gitignore` proíbe versionar (o
+# repositório é público). Por não ser versionado, não tem lib declarada aqui:
+# para conferir um gabarito, `lake env lean Solutions/Solution02.lean`.
+
+[[lean_exe]]
+name = "cswl"
+root = "Main"
+
+[[require]]
+name = "cslib"
+scope = "leanprover"
+
+# Verso: gera a versão web (HTML) dos mesmos arquivos `.lean`, no modo
+# "literate". Alvo: `lake build :literateHtml` (veja `build-web.sh`).
+# Revisão fixada porque o `lean-toolchain` do verso tem de bater com o nosso
+# (v4.33.0-rc2); `main` pode avançar para um toolchain mais novo.
+[[require]]
+name = "verso"
+git = "https://github.com/leanprover/verso"
+rev = "755ccbe968ad1b0255bee8b46d9cb2306486d6d8"
+
+# doc-gen4: gera a documentação de API (a referência: um HTML por declaração,
+# com tipo, docstring e links). Alvo: `lake build CSwL:docs`, saída em
+# `.lake/build/doc/` (veja `build-web.sh`).
+#
+# O Tao declara esta dependência só no ambiente "dev"
+# (`meta if get_config? env = some "dev" then require ...` no `lakefile.lean`),
+# para que quem só quer compilar o livro não baixe o doc-gen4. Isso NÃO tem
+# equivalente em TOML: `[[require]]` aceita apenas `name`/`scope`/`git`/`rev`/
+# `path`/`version`/`options` — não há campo de condição nem `meta if`. Ficar
+# incondicional (e manter o lakefile declarativo) custa, medido:
+#   - quatro repositórios extras clonados uma vez (doc-gen4, leansqlite,
+#     UnicodeBasic, BibtexQuery), sem mexer nas revisões já fixadas das outras;
+#   - `lake build` compila os objetos nativos do leansqlite (~2 s, uma vez só);
+#   - o doc-gen4 em si só é compilado quando o alvo `:docs` é pedido.
+#
+# Revisão fixada na tag que casa com o nosso `lean-toolchain` (v4.33.0-rc2).
+# Sendo incondicional, um `main` quebrado quebraria o build de todo mundo.
+[[require]]
+name = "doc-gen4"
+git = "https://github.com/leanprover/doc-gen4"
+rev = "v4.33.0-rc2"
